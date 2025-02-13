@@ -106,7 +106,6 @@ class RestaurantStaffView(generics.ListAPIView):
         restaurant_id = self.kwargs.get('restaurant_id')
         owner_email = self.request.query_params.get('owner_email')
 
-        # Verify the restaurant belongs to the owner
         try:
             restaurant = Restaurant.objects.get(
                 restaurant_id=restaurant_id,
