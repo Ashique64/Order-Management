@@ -54,7 +54,6 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         fields = ['name', 'email', 'restaurant_id', 'owner_email']
 
     def create(self, validated_data):
-        # Remove owner_email as it's not part of the Staff model
         owner_email = validated_data.pop('owner_email')
         restaurant_id = validated_data.pop('restaurant_id')
         

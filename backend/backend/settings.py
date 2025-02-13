@@ -28,6 +28,26 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'X-Password-Hash',
+]
+CORS_ALLOWED_ORIGINS = [
+    'http://*',
+    'https://*',
+]
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -37,7 +57,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
     'owner',
     
 ]
@@ -45,6 +67,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -140,3 +163,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400 
+
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ),
+# }
+
+# from datetime import timedelta
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=120),  
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     
+#     'ROTATE_REFRESH_TOKENS': False,                  
+#     'BLACKLIST_AFTER_ROTATION': False,
+#     "UPDATE_LAST_LOGIN": False,              
+#     'ALGORITHM': 'HS256', 
+#     'USER_ID_FIELD': 'email',                                            
+# }
