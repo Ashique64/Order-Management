@@ -1,10 +1,11 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from .models import Owner, Staff, Restaurant
-from .serializers import OwnerSerializer, StaffSerializer, LoginSerializer, StaffSerializer, RestaurantSerializer, StaffCreateSerializer
-from rest_framework.permissions import IsAuthenticated
-
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.contrib.auth.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .models import Staff, Restaurant
+from .serializers import UserSerializer, StaffSerializer, LoginSerializer, RestaurantSerializer, StaffCreateSerializer
 
 class LoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
@@ -18,64 +19,67 @@ class LoginView(generics.GenericAPIView):
         restaurant = serializer.validated_data['restaurant']
 
         try:
-            owner = Owner.objects.get(email=email)
-            if restaurant.owner == owner:
-
-                request.session['user_email'] = email
-                request.session['user_type'] = 'owner'
-
-                owner_serializer = OwnerSerializer(owner)
-                return Response(
-                    {
-                        'message': 'Owner login successful',
-                        'owner': owner_serializer.data['email'],
-                        'redirect': 'owner_dashboard'
-                    },
-                    status=status.HTTP_200_OK
-                )
-        except Owner.DoesNotExist:
+            user = User.objects.get(email=email)
+            if restaurant.owner == user:
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'message': 'Owner login successful',
+                    'user': user.email,
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                    'redirect': 'owner_dashboard'
+                }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
             pass
 
         try:
             staff = Staff.objects.get(email=email, restaurant=restaurant)
-
-            request.session['user_email'] = email
-            request.session['user_type'] = 'staff'
-
-            staff_serializer = StaffSerializer(staff)
-            return Response(
-                {
-                    'message': 'Staff login successful',
-                    'staff': staff_serializer.data,
-                    'redirect': 'home_page'
-                },
-                status=status.HTTP_200_OK
-            )
+            refresh = RefreshToken.for_user(staff)
+            return Response({
+                'message': 'Staff login successful',
+                'staff': staff.email,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'redirect': 'home_page'
+            }, status=status.HTTP_200_OK)
         except Staff.DoesNotExist:
             return Response(
-                {'error': 'Email does not match any owner or staff for this restaurant'},
+                {'error': 'Email does not match any user or staff for this restaurant'},
                 status=status.HTTP_404_NOT_FOUND
             )
-
-
+            
 class OwnerRestaurantsView(generics.ListAPIView):
     serializer_class = RestaurantSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated] 
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
-        user_email = self.request.session.get('user_email')
-        user_type = self.request.session.get('user_type')
+        user = self.request.user
+        print(f"Authenticated user: {user}")
 
-        if not user_email or user_type != 'owner':
+        if user:
+            user_email = user.email
+            print(f"User email: {user_email}")
+        else:
+            user_email = None
+
+        if not user_email or not User.objects.filter(email=user_email).exists():
+            print("User is not authenticated or not an owner.")
             return Restaurant.objects.none()
 
-        return Restaurant.objects.filter(owner__email=user_email)
+        print("User is authenticated and is an owner.")
+        return Restaurant.objects.filter(owner=user)
 
     def list(self, request, *args, **kwargs):
-        user_email = request.session.get('user_email')
-        user_type = request.session.get('user_type')
+        user = request.user
+        print(f"Request user: {user}")
 
-        if not user_email or user_type != 'owner':
+        if user:
+            user_email = user.email
+        else:
+            user_email = None
+
+        if not user_email or not User.objects.filter(email=user_email).exists():
             return Response(
                 {'error': 'You must be logged in as an owner to view restaurants'},
                 status=status.HTTP_403_FORBIDDEN
@@ -90,13 +94,11 @@ class OwnerRestaurantsView(generics.ListAPIView):
             )
 
         serializer = self.get_serializer(queryset, many=True)
-        restaurant_names = [restaurant['name']
-                            for restaurant in serializer.data]
+        restaurant_names = [restaurant['name'] for restaurant in serializer.data]
         return Response({
             'message': 'Restaurants listing successful',
             'restaurants': restaurant_names,
-        },)
-
+        })
 
 class RestaurantStaffView(generics.ListAPIView):
     serializer_class = StaffSerializer
@@ -114,7 +116,6 @@ class RestaurantStaffView(generics.ListAPIView):
             return Staff.objects.filter(restaurant=restaurant)
         except Restaurant.DoesNotExist:
             return Staff.objects.none()
-
 
 class AddStaffView(generics.CreateAPIView):
     serializer_class = StaffCreateSerializer

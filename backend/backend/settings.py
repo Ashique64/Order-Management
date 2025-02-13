@@ -163,21 +163,29 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400 
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Set to False in development if not using HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
 # REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': (
-#         'rest_framework_simplejwt.authentication.JWTAuthentication',
-#     ),
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework.authentication.SessionAuthentication',
+#     ],
 # }
 
-# from datetime import timedelta
-# SIMPLE_JWT = {
-#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=120),  
-#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     
-#     'ROTATE_REFRESH_TOKENS': False,                  
-#     'BLACKLIST_AFTER_ROTATION': False,
-#     "UPDATE_LAST_LOGIN": False,              
-#     'ALGORITHM': 'HS256', 
-#     'USER_ID_FIELD': 'email',                                            
-# }
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=120),  
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     
+    'ROTATE_REFRESH_TOKENS': False,                  
+    'BLACKLIST_AFTER_ROTATION': False,
+    "UPDATE_LAST_LOGIN": False,              
+    'ALGORITHM': 'HS256',                                           
+}
