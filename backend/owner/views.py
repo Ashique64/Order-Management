@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from .models import Staff, Restaurant,Owner
-from .serializers import OwnerSerializer, StaffSerializer, LoginSerializer, RestaurantSerializer, StaffCreateSerializer
+from .models import Staff, Restaurant,Owner, Category, Product
+from .serializers import StaffSerializer, LoginSerializer, RestaurantSerializer, StaffCreateSerializer, CategorySerializer, ProductSerializer
 
 class LoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
@@ -147,3 +147,32 @@ class AddStaffView(generics.CreateAPIView):
             {'message': 'Staff added successfully', 'staff': serializer.data},
             status=status.HTTP_201_CREATED
         )
+        
+
+
+class CategoryListCreateView(generics.ListCreateAPIView):
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def get_queryset(self):
+        restaurant_id = self.kwargs.get('restaurant_id')
+        owner = self.request.user
+
+        if not isinstance(owner, Owner):
+            return Category.objects.none()
+
+        try:
+            restaurant = Restaurant.objects.get(restaurant_id=restaurant_id, owner=owner)
+            return Category.objects.filter(restaurant=restaurant)
+        except Restaurant.DoesNotExist:
+            return Category.objects.none()
+    
+    def perform_create(self, serializer):
+        restaurant_id = self.kwargs.get('restaurant_id')
+        try:
+            restaurant = Restaurant.objects.get(restaurant_id=restaurant_id, owner=self.request.user)
+            serializer.save(restaurant=restaurant)
+        except Restaurant.DoesNotExist:
+            raise serializer.ValidationError("Restaurant not found or you do not have permission to add categories to this restaurant.")
+

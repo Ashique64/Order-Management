@@ -20,16 +20,17 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        
+
         extra_fields.setdefault('phone_number', '')
         extra_fields.setdefault('shop_type', '')
-        
+
         if password is None:
             password = self.make_random_password()
         return self.create_user(email, password, **extra_fields)
 
     def get_by_natural_key(self, email):
         return self.get(email=email)
+
 
 class Owner(AbstractBaseUser, PermissionsMixin):
     SHOP_TYPE_CHOICES = [
@@ -52,19 +53,23 @@ class Owner(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+
 class Restaurant(models.Model):
     restaurant_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
-    owner = models.ForeignKey(Owner, on_delete=models.CASCADE, related_name="restaurants")
+    owner = models.ForeignKey(
+        Owner, on_delete=models.CASCADE, related_name="restaurants")
 
     def __str__(self):
         return f'[Id: {self.restaurant_id}] :- {self.name}'
-   
-class Staff(models.Model):
-    name = models.CharField(max_length=255, null=False, blank=False, default='Default Name')
-    email = models.EmailField(unique=True, null=False, blank=False)
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="staff")
 
+
+class Staff(models.Model):
+    name = models.CharField(max_length=255, null=False,
+                            blank=False, default='Default Name')
+    email = models.EmailField(unique=True, null=False, blank=False)
+    restaurant = models.ForeignKey(
+        Restaurant, on_delete=models.CASCADE, related_name="staff")
 
     def __str__(self):
         return self.email
@@ -72,3 +77,37 @@ class Staff(models.Model):
     @classmethod
     def is_staff(cls, email):
         return cls.objects.filter(email=email).exists()
+
+
+class Category(models.Model):
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name='categories'
+    )
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to='category_images/', blank=True, null=True)
+
+    class Meta:
+        unique_together = ('restaurant', 'name')
+
+    def __str__(self):
+        return f'{self.name}'
+    
+class Product(models.Model):
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name='products'
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=8, decimal_places=2)
+    is_available = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='product_images/', blank=True, null=True)
+
+
+    def __str__(self):
+        return f'{self.name} - {self.category.name}'
+

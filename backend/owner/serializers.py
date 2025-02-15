@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Staff, Restaurant,Owner
+from .models import Staff, Restaurant,Owner,Product,Category
 
 class StaffSerializer(serializers.ModelSerializer):
     class Meta:
@@ -63,3 +63,22 @@ class StaffCreateSerializer(serializers.ModelSerializer):
             return Staff.objects.create(restaurant=restaurant, **validated_data)
         except Restaurant.DoesNotExist:
             raise serializers.ValidationError("Invalid restaurant or owner")
+        
+
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'category', 'name', 'description', 'price', 'is_available', 'image']
+
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Category
+        fields = ['id', 'restaurant', 'name', 'description', 'products', 'image']
+        read_only_fields = ['id', 'restaurant']
+
