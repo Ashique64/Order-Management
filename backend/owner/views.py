@@ -102,15 +102,19 @@ class OwnerRestaurantsView(generics.ListAPIView):
 class RestaurantStaffView(generics.ListAPIView):
     serializer_class = StaffSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         restaurant_id = self.kwargs.get('restaurant_id')
-        owner_email = self.request.query_params.get('owner_email')
+        owner = self.request.user
+        
+        if not isinstance(owner, Owner):
+            return Staff.objects.none()
 
         try:
             restaurant = Restaurant.objects.get(
                 restaurant_id=restaurant_id,
-                owner__email=owner_email
+                owner=owner
             )
             return Staff.objects.filter(restaurant=restaurant)
         except Restaurant.DoesNotExist:
