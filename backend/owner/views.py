@@ -1,11 +1,10 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from .models import Staff, Restaurant
-from .serializers import UserSerializer, StaffSerializer, LoginSerializer, RestaurantSerializer, StaffCreateSerializer
+from .models import Staff, Restaurant,Owner
+from .serializers import OwnerSerializer, StaffSerializer, LoginSerializer, RestaurantSerializer, StaffCreateSerializer
 
 class LoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
@@ -19,7 +18,7 @@ class LoginView(generics.GenericAPIView):
         restaurant = serializer.validated_data['restaurant']
 
         try:
-            user = User.objects.get(email=email)
+            user = Owner.objects.get(email=email)
             if restaurant.owner == user:
                 refresh = RefreshToken.for_user(user)
                 return Response({
@@ -29,7 +28,7 @@ class LoginView(generics.GenericAPIView):
                     'refresh': str(refresh),
                     'redirect': 'owner_dashboard'
                 }, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
+        except Owner.DoesNotExist:
             pass
 
         try:
@@ -63,7 +62,7 @@ class OwnerRestaurantsView(generics.ListAPIView):
         else:
             user_email = None
 
-        if not user_email or not User.objects.filter(email=user_email).exists():
+        if not user_email or not Owner.objects.filter(email=user_email).exists():
             print("User is not authenticated or not an owner.")
             return Restaurant.objects.none()
 
@@ -79,7 +78,7 @@ class OwnerRestaurantsView(generics.ListAPIView):
         else:
             user_email = None
 
-        if not user_email or not User.objects.filter(email=user_email).exists():
+        if not user_email or not Owner.objects.filter(email=user_email).exists():
             return Response(
                 {'error': 'You must be logged in as an owner to view restaurants'},
                 status=status.HTTP_403_FORBIDDEN

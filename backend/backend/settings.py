@@ -189,3 +189,5 @@ SIMPLE_JWT = {
     "UPDATE_LAST_LOGIN": False,              
     'ALGORITHM': 'HS256',                                           
 }
+
+AUTH_USER_MODEL = 'owner.Owner'

@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import Staff, Restaurant
+from .models import Staff, Restaurant,Owner
 
 class StaffSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,18 +8,18 @@ class StaffSerializer(serializers.ModelSerializer):
 
 class RestaurantSerializer(serializers.ModelSerializer):
     staff = StaffSerializer(many=True, read_only=True)
-    owner = serializers.ReadOnlyField(source='owner.email')  # Read-only field to display owner's email
+    owner = serializers.ReadOnlyField(source='owner.email')
 
     class Meta:
         model = Restaurant
         fields = ['restaurant_id', 'name', 'owner', 'staff']
 
-class UserSerializer(serializers.ModelSerializer):
+class OwnerSerializer(serializers.ModelSerializer):
     restaurants = RestaurantSerializer(many=True, read_only=True)
 
     class Meta:
-        model = User
-        fields = ['email', 'restaurants']
+        model = Owner
+        fields = ['email', 'name', 'phone_number', 'shop_type', 'restaurants']
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -35,7 +34,7 @@ class LoginSerializer(serializers.Serializer):
         except Restaurant.DoesNotExist:
             raise serializers.ValidationError("Restaurant not found")
 
-        owner_exists = User.objects.filter(email=email).exists()
+        owner_exists = Owner.objects.filter(email=email).exists()
         staff_exists = Staff.objects.filter(email=email, restaurant=restaurant).exists()
 
         if not (owner_exists or staff_exists):
