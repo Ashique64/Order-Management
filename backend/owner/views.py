@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Staff, Restaurant,Owner, Category, Product
 from .serializers import StaffSerializer, LoginSerializer, RestaurantSerializer, StaffCreateSerializer, CategorySerializer, ProductSerializer
+from rest_framework.exceptions import PermissionDenied, NotFound
 
 class LoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
@@ -202,3 +203,25 @@ class ProductListCreateView(generics.ListCreateAPIView):
             serializer.save(category=category)
         except Category.DoesNotExist:
             raise serializer.ValidationError("Category not found or you do not have permission to add products to this category.")
+        
+
+class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get_object(self):
+        product_id = self.kwargs.get('pk')
+        user = self.request.user
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            raise NotFound("Product not found.")
+
+        restaurant_owner = product.category.restaurant.owner
+
+        if user == restaurant_owner :
+            return product
+        else:
+            raise PermissionDenied("You do not have permission to access this product.")
