@@ -149,6 +149,25 @@ class AddStaffView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED
         )
         
+class StaffUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = StaffSerializer 
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get_object(self):
+        staff_id = self.kwargs.get('pk')
+        user = self.request.user
+
+        try:
+            staff = Staff.objects.get(id=staff_id)
+        except Staff.DoesNotExist:
+            raise NotFound("Staff member not found.")
+
+        if staff.restaurant.owner != user:
+            raise PermissionDenied("You do not have permission to access this staff member.")
+
+        return staff
+        
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -176,6 +195,27 @@ class CategoryListCreateView(generics.ListCreateAPIView):
             serializer.save(restaurant=restaurant)
         except Restaurant.DoesNotExist:
             raise serializer.ValidationError("Restaurant not found or you do not have permission to add categories to this restaurant.")
+
+class CategoryUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get_object(self):
+        category_id = self.kwargs.get('pk')
+        user = self.request.user
+
+        try:
+            category = Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            raise NotFound("Category not found.")
+
+        restaurant_owner = category.restaurant.owner
+
+        if user == restaurant_owner:
+            return category
+        else:
+            raise PermissionDenied("You do not have permission to access this category.")
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
@@ -205,7 +245,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
             raise serializer.ValidationError("Category not found or you do not have permission to add products to this category.")
         
 
-class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
+class ProductUpdataDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
