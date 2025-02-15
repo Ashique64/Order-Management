@@ -176,3 +176,29 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         except Restaurant.DoesNotExist:
             raise serializer.ValidationError("Restaurant not found or you do not have permission to add categories to this restaurant.")
 
+
+class ProductListCreateView(generics.ListCreateAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def get_queryset(self):
+        category_id = self.kwargs.get('category_id')
+        owner = self.request.user
+
+        if not isinstance(owner, Owner):
+            return Product.objects.none()
+
+        try:
+            category = Category.objects.get(id=category_id, restaurant__owner=owner)
+            return Product.objects.filter(category=category)
+        except Category.DoesNotExist:
+            return Product.objects.none()
+    
+    def perform_create(self, serializer):
+        category_id = self.kwargs.get('category_id')
+        try:
+            category = Category.objects.get(id=category_id, restaurant__owner=self.request.user)
+            serializer.save(category=category)
+        except Category.DoesNotExist:
+            raise serializer.ValidationError("Category not found or you do not have permission to add products to this category.")

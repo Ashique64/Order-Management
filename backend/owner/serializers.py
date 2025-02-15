@@ -71,6 +71,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'category', 'name', 'description', 'price', 'is_available', 'image']
+        read_only_fields = ['category']
 
 
 
@@ -80,5 +81,5 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'restaurant', 'name', 'description', 'products', 'image']
-        read_only_fields = ['id', 'restaurant']
+        read_only_fields = ['restaurant']
 
