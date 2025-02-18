@@ -70,7 +70,7 @@ class StaffCreateSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['id', 'category', 'name', 'description', 'price', 'is_available', 'image']
+        fields = ['id', 'category', 'name', 'description', 'price', 'is_available', 'image', 'quantity']
         read_only_fields = ['category']
 
 
