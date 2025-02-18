@@ -109,3 +109,9 @@ class Product(models.Model):
     def __str__(self):
         return f'{self.name} - {self.category.name}'
 
+
+
+# class SalesReport(models.Model):
+#     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="sales_reports")
+#     date = models.DateField(auto_now_add=True)
+#     total_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
