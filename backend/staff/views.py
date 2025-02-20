@@ -101,3 +101,38 @@ def remove_item(request, order_id):
             {"error": "Item not found in order"},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def print_bill(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+
+    # Generate plain text bill
+    bill_text = f"""
+    ***********************
+          BILL RECEIPT
+    ***********************
+    Order ID: {order.id}
+    Date: {order.order_date.strftime('%Y-%m-%d %H:%M:%S')}
+    Staff: {order.staff.get_full_name()}
+    
+    Items:
+    -------------------------------------
+    """
+
+    total_amount = 0
+    for item in order.items.all():
+        item_text = f"{item.product.name}  x{item.quantity}  -  {item.price_at_time * item.quantity:.2f}"
+        bill_text += item_text + "\n"
+        total_amount += item.price_at_time * item.quantity
+
+    bill_text += f"""
+    -------------------------------------
+    Total Amount: {total_amount:.2f}
+    Thank you for your purchase!
+    ***********************
+    """
+
+    return Response({"bill_text": bill_text}, status=status.HTTP_200_OK)

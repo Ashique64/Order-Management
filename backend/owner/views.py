@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -216,7 +216,7 @@ class CategoryListCreateView(generics.ListCreateAPIView):
             restaurant = Restaurant.objects.get(restaurant_id=restaurant_id, owner=self.request.user)
             serializer.save(restaurant=restaurant)
         except Restaurant.DoesNotExist:
-            raise serializer.ValidationError("Restaurant not found or you do not have permission to add categories to this restaurant.")
+            raise serializers.ValidationError("Restaurant not found or you do not have permission to add categories to this restaurant.")
 
 class CategoryUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CategorySerializer
@@ -264,7 +264,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
             category = Category.objects.get(id=category_id, restaurant__owner=self.request.user)
             serializer.save(category=category)
         except Category.DoesNotExist:
-            raise serializer.ValidationError("Category not found or you do not have permission to add products to this category.")
+            raise serializers.ValidationError("Category not found or you do not have permission to add products to this category.")
         
 
 class ProductUpdataDeleteView(generics.RetrieveUpdateDestroyAPIView):
