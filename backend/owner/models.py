@@ -2,34 +2,6 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin,Group, Permission
 
 
-# class CustomUserManager(BaseUserManager):
-#     def create_user(self, email, password=None, **extra_fields):
-#         if not email:
-#             raise ValueError('The Email field must be set')
-#         email = self.normalize_email(email)
-#         user = self.model(email=email, **extra_fields)
-#         if password:
-#             user.set_password(password)
-#         else:
-#             user.set_unusable_password()
-#         user.save(using=self._db)
-#         return user
-
-#     def create_superuser(self, email, password=None, **extra_fields):
-#         extra_fields.setdefault('is_staff', True)
-#         extra_fields.setdefault('is_superuser', True)
-
-#         extra_fields.setdefault('phone_number', '')
-#         extra_fields.setdefault('shop_type', '')
-
-#         if password is None:
-#             password = self.make_random_password()
-#         return self.create_user(email, password, **extra_fields)
-
-#     def get_by_natural_key(self, email):
-#         return self.get(email=email)
-
-
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -128,8 +100,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 class Restaurant(models.Model):
     restaurant_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
-    # owner = models.ForeignKey(
-    #     Owner, on_delete=models.CASCADE, related_name="restaurants")
     owner = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, related_name="restaurants",
         limit_choices_to={'role': 'Owner'}

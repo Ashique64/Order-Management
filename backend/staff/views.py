@@ -1,11 +1,11 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from .models import Order, OrderItem
 from .serializers import OrderSerializer, OrderItemSerializer
-from owner.models import Staff, Restaurant,Product
+from owner.models import CustomUser, Product
 
 class OrderListCreateView(generics.ListCreateAPIView):
     serializer_class = OrderSerializer
@@ -17,20 +17,19 @@ class OrderListCreateView(generics.ListCreateAPIView):
         if hasattr(user, 'restaurants'):
             restaurant_ids = user.restaurants.values_list('restaurant_id', flat=True)
             return Order.objects.filter(
-                staff__restaurant_id__in=restaurant_ids
+                staff__restaurant__in=restaurant_ids
             ).order_by('-order_date')
 
-        staff = Staff.objects.filter(email=user.email).first()
+        staff = CustomUser.objects.filter(email=user.email, role='Staff').first()
         if staff:
             return Order.objects.filter(staff=staff).order_by('-order_date')
 
         return Order.objects.none()
 
     def perform_create(self, serializer):
-        
-        staff = Staff.objects.filter(email=self.request.user.email).first()
+        staff = CustomUser.objects.filter(email=self.request.user.email, role='Staff').first()
         if not staff:
-            raise serializer.ValidationError("Only staff members can create orders")
+            raise serializers.ValidationError("Only staff members can create orders")
 
         items_data = self.request.data.get('items', [])
         restaurant_id = staff.restaurant_id
@@ -39,7 +38,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
             product_id = item.get('product')
             product = get_object_or_404(Product, id=product_id)
             if product.category.restaurant_id != restaurant_id:
-                raise serializer.ValidationError(
+                raise serializers.ValidationError(
                     f"Product {product.name} does not belong to your restaurant"
                 )
 
@@ -60,7 +59,6 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_item(request, order_id):
-    
     order = get_object_or_404(Order, id=order_id)
     serializer = OrderItemSerializer(data=request.data)
 
@@ -81,7 +79,6 @@ def add_item(request, order_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def remove_item(request, order_id):
-
     order = get_object_or_404(Order, id=order_id)
     item_id = request.data.get('item_id')
 

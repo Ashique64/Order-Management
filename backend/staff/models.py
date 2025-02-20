@@ -1,15 +1,12 @@
 from django.db import models
-from owner.models import Staff,Product
-
-# Create your models here.
-
+from owner.models import CustomUser, Product
 
 class Order(models.Model):
-
     staff = models.ForeignKey(
-        Staff,
+        CustomUser,
         on_delete=models.PROTECT,
-        related_name='orders'
+        related_name='orders',
+        limit_choices_to={'role': 'Staff'}
     )
     order_date = models.DateTimeField(auto_now_add=True)
     total_price = models.DecimalField(
@@ -32,7 +29,6 @@ class OrderItem(models.Model):
         on_delete=models.CASCADE,
         related_name='items'
     )
-    
     product = models.ForeignKey(
         Product,
         on_delete=models.PROTECT,

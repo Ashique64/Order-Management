@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Owner,Restaurant,CustomUser
+from .models import Restaurant, CustomUser
 from .forms import OwnerCreationForm, OwnerChangeForm
 
 class OwnerAdmin(UserAdmin):
@@ -24,7 +24,10 @@ class OwnerAdmin(UserAdmin):
     search_fields = ('email', 'name')
     ordering = ('email',)
     filter_horizontal = ('groups', 'user_permissions',)
-    
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(role='Owner')
 
 admin.site.register(CustomUser, OwnerAdmin)
 admin.site.register(Restaurant)
