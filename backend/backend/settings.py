@@ -186,4 +186,4 @@ SIMPLE_JWT = {
     'ALGORITHM': 'HS256',                                           
 }
 
-AUTH_USER_MODEL = 'owner.Owner'
+AUTH_USER_MODEL = 'owner.CustomUser'

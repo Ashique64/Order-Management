@@ -10,7 +10,7 @@ urlpatterns = [
     path('restaurant/<int:restaurant_id>/staff/',
          RestaurantStaffView.as_view(), name='restaurant-staff'),
     path('staff/add/', AddStaffView.as_view(), name='add-staff'),
-    path('staff/<int:pk>/', StaffUpdateDeleteView.as_view(), name='staff-detail'),
+    path('staff/<str:name>/', StaffUpdateDeleteView.as_view(), name='staff-detail'),
     path('restaurant/<int:restaurant_id>/categories/',
          CategoryListCreateView.as_view(), name='category-list-create'),
     path('categories/<int:pk>/', CategoryUpdateDeleteView.as_view(),

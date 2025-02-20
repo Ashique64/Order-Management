@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
-from .models import Owner
+from .models import CustomUser
 
 class OwnerCreationForm(forms.ModelForm):
     """
@@ -10,8 +10,8 @@ class OwnerCreationForm(forms.ModelForm):
     password2 = forms.CharField(label='Confirm Password', widget=forms.PasswordInput, required=False)
 
     class Meta:
-        model = Owner
-        fields = ('email', 'name', 'phone_number', 'shop_type')
+        model = CustomUser
+        fields = ('email', 'name', 'phone_number', 'shop_type', 'is_active', 'role')
 
     def clean(self):
         cleaned_data = super().clean()
@@ -41,8 +41,8 @@ class OwnerChangeForm(forms.ModelForm):
     password = ReadOnlyPasswordHashField(label=("Password"), required=False)
 
     class Meta:
-        model = Owner
-        fields = ('email', 'password', 'name', 'phone_number', 'shop_type', 'is_active', 'is_staff')
+        model = CustomUser
+        fields = ('email', 'password', 'name', 'phone_number', 'shop_type', 'role','is_active', 'is_staff')
 
     def clean_password(self):
         return self.initial["password"]

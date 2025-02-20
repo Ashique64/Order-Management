@@ -3,9 +3,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from .models import Staff, Restaurant,Owner, Category, Product
-from .serializers import StaffSerializer, LoginSerializer, RestaurantSerializer, StaffCreateSerializer, CategorySerializer, ProductSerializer
+from .models import Restaurant, Category, Product, CustomUser
+from .serializers import LoginSerializer, RestaurantSerializer, StaffCreateSerializer, CategorySerializer, ProductSerializer,CustomUserSerializer
 from rest_framework.exceptions import PermissionDenied, NotFound
+
 
 class LoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
@@ -18,39 +19,52 @@ class LoginView(generics.GenericAPIView):
         email = serializer.validated_data['email']
         restaurant = serializer.validated_data['restaurant']
 
+
         try:
-            user = Owner.objects.get(email=email)
-            if restaurant.owner == user:
+            user = CustomUser.objects.get(email=email)
+            
+            if user.restaurant is None:
+                user.restaurant = restaurant
+                user.save()
+            
+            if user.role == 'Owner' and user.restaurant == restaurant:
                 refresh = RefreshToken.for_user(user)
+                restaurant_data = RestaurantSerializer(restaurant).data
                 return Response({
                     'message': 'Owner login successful',
                     'user': user.email,
+                    'role':user.role,
+                    'restaurant_id':restaurant_data,
                     'access': str(refresh.access_token),
                     'refresh': str(refresh),
                     'redirect': 'owner_dashboard'
                 }, status=status.HTTP_200_OK)
-        except Owner.DoesNotExist:
-            pass
-
-        try:
-            staff = Staff.objects.get(email=email, restaurant=restaurant)
-            refresh = RefreshToken.for_user(staff)
-            return Response({
-                'message': 'Staff login successful',
-                'staff': staff.email,
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-                'redirect': 'home_page'
-            }, status=status.HTTP_200_OK)
-        except Staff.DoesNotExist:
+            elif user.role == 'Staff' and user.restaurant == restaurant:
+                refresh = RefreshToken.for_user(user)
+                restaurant_data = RestaurantSerializer(restaurant).data
+                return Response({
+                    'message': 'Staff login successful',
+                    'user': user.email,
+                    'role':user.role,
+                    'restaurant_id':restaurant_data,
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                    'redirect': 'home_page'
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {'error': 'User does not match the provided restaurant'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        except CustomUser.DoesNotExist:
             return Response(
-                {'error': 'Email does not match any user or staff for this restaurant'},
+                {'error': 'Email does not match any user'},
                 status=status.HTTP_404_NOT_FOUND
             )
             
 class OwnerRestaurantsView(generics.ListAPIView):
     serializer_class = RestaurantSerializer
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
@@ -63,7 +77,7 @@ class OwnerRestaurantsView(generics.ListAPIView):
         else:
             user_email = None
 
-        if not user_email or not Owner.objects.filter(email=user_email).exists():
+        if not user_email or not CustomUser.objects.filter(email=user_email, role='Owner').exists():
             print("User is not authenticated or not an owner.")
             return Restaurant.objects.none()
 
@@ -79,7 +93,7 @@ class OwnerRestaurantsView(generics.ListAPIView):
         else:
             user_email = None
 
-        if not user_email or not Owner.objects.filter(email=user_email).exists():
+        if not user_email or not CustomUser.objects.filter(email=user_email).exists():
             return Response(
                 {'error': 'You must be logged in as an owner to view restaurants'},
                 status=status.HTTP_403_FORBIDDEN
@@ -101,38 +115,46 @@ class OwnerRestaurantsView(generics.ListAPIView):
         })
 
 class RestaurantStaffView(generics.ListAPIView):
-    serializer_class = StaffSerializer
+    serializer_class = CustomUserSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         restaurant_id = self.kwargs.get('restaurant_id')
         owner = self.request.user
-        
-        if not isinstance(owner, Owner):
-            return Staff.objects.none()
+
+        if not owner or owner.role != 'Owner':
+            return CustomUser.objects.none()
 
         try:
             restaurant = Restaurant.objects.get(
                 restaurant_id=restaurant_id,
                 owner=owner
             )
-            return Staff.objects.filter(restaurant=restaurant)
+            return CustomUser.objects.filter(restaurant=restaurant, role='Staff')
         except Restaurant.DoesNotExist:
-            return Staff.objects.none()
+            return CustomUser.objects.none()
 
 class AddStaffView(generics.CreateAPIView):
     serializer_class = StaffCreateSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def create(self, request, *args, **kwargs):
-        owner_email = request.data.get('owner_email')
+        owner = self.request.user
+
+        if owner.role != 'Owner':
+            return Response(
+                {'error': 'Only owners can add staff'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         restaurant_id = request.data.get('restaurant_id')
 
         try:
             restaurant = Restaurant.objects.get(
                 restaurant_id=restaurant_id,
-                owner__email=owner_email
+                owner=owner
             )
         except Restaurant.DoesNotExist:
             return Response(
@@ -142,7 +164,7 @@ class AddStaffView(generics.CreateAPIView):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(restaurant=restaurant)
 
         return Response(
             {'message': 'Staff added successfully', 'staff': serializer.data},
@@ -150,17 +172,17 @@ class AddStaffView(generics.CreateAPIView):
         )
         
 class StaffUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = StaffSerializer 
+    serializer_class = CustomUserSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
     def get_object(self):
-        staff_id = self.kwargs.get('pk')
+        staff_name = self.kwargs.get('name')
         user = self.request.user
 
         try:
-            staff = Staff.objects.get(id=staff_id)
-        except Staff.DoesNotExist:
+            staff = CustomUser.objects.get(name=staff_name, role='Staff')
+        except CustomUser.DoesNotExist:
             raise NotFound("Staff member not found.")
 
         if staff.restaurant.owner != user:
@@ -179,7 +201,7 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         restaurant_id = self.kwargs.get('restaurant_id')
         owner = self.request.user
 
-        if not isinstance(owner, Owner):
+        if owner.role != 'Owner':
             return Category.objects.none()
 
         try:
@@ -227,7 +249,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
         category_id = self.kwargs.get('category_id')
         owner = self.request.user
 
-        if not isinstance(owner, Owner):
+        if owner.role != 'Owner':
             return Product.objects.none()
 
         try:
