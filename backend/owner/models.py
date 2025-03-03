@@ -35,7 +35,7 @@ class Owner(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, null=False, blank=False)
     name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=15, unique=True)
-    shop_type = models.CharField(max_length=20, choices=SHOP_TYPE_CHOICES)
+    shop_type = models.CharField(max_length=20, choices=SHOP_TYPE_CHOICES, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 

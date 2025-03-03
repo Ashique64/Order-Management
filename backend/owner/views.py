@@ -108,10 +108,10 @@ class OwnerRestaurantsView(generics.ListAPIView):
             )
 
         serializer = self.get_serializer(queryset, many=True)
-        restaurant_names = [restaurant['name'] for restaurant in serializer.data]
+        # restaurant_names = [restaurant['name'] for restaurant in serializer.data]
         return Response({
             'message': 'Restaurants listing successful',
-            'restaurants': restaurant_names,
+            'restaurants': serializer.data,
         })
 
 class RestaurantStaffView(generics.ListAPIView):
@@ -199,14 +199,20 @@ class CategoryListCreateView(generics.ListCreateAPIView):
     
     def get_queryset(self):
         restaurant_id = self.kwargs.get('restaurant_id')
-        owner = self.request.user
+        user = self.request.user
 
-        if owner.role != 'Owner':
-            return Category.objects.none()
+        # if owner.role != 'Owner':
+        #     return Category.objects.none()
 
         try:
-            restaurant = Restaurant.objects.get(restaurant_id=restaurant_id, owner=owner)
-            return Category.objects.filter(restaurant=restaurant)
+            restaurant = Restaurant.objects.get(restaurant_id=restaurant_id)
+            if user.role == 'Owner' and restaurant.owner == user:
+                return Category.objects.filter(restaurant=restaurant)
+            elif user.role == 'Staff' and user.restaurant == restaurant:
+                return Category.objects.filter(restaurant=restaurant)
+            else:
+                return Category.objects.none()
+            # return Category.objects.filter(restaurant=restaurant)
         except Restaurant.DoesNotExist:
             return Category.objects.none()
     
@@ -247,16 +253,29 @@ class ProductListCreateView(generics.ListCreateAPIView):
     
     def get_queryset(self):
         category_id = self.kwargs.get('category_id')
-        owner = self.request.user
+        user = self.request.user
 
-        if owner.role != 'Owner':
-            return Product.objects.none()
+        # if owner.role != 'Owner':
+        #     return Product.objects.none()
 
+        # try:
+        #     category = Category.objects.get(id=category_id, restaurant__owner=user)
+        #     return Product.objects.filter(category=category)
+        # except Category.DoesNotExist:
+        #     return Product.objects.none()
+        
         try:
-            category = Category.objects.get(id=category_id, restaurant__owner=owner)
-            return Product.objects.filter(category=category)
+            category = Category.objects.get(id=category_id)
+            
+            if user.role == 'Owner' and category.restaurant.owner == user:
+                return Product.objects.filter(category=category)
+            elif user.role == 'Staff' and user.restaurant == category.restaurant:
+                return Product.objects.filter(category=category)
+            else:
+                return Product.objects.none()
         except Category.DoesNotExist:
             return Product.objects.none()
+        
     
     def perform_create(self, serializer):
         category_id = self.kwargs.get('category_id')

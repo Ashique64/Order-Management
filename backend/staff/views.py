@@ -14,15 +14,11 @@ class OrderListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
 
-        if hasattr(user, 'restaurants'):
-            restaurant_ids = user.restaurants.values_list('restaurant_id', flat=True)
-            return Order.objects.filter(
-                staff__restaurant__in=restaurant_ids
-            ).order_by('-order_date')
+        if user.role == 'Staff' and user.restaurant is not None:
+            return Order.objects.filter(staff=user).order_by('-order_date')
 
-        staff = CustomUser.objects.filter(email=user.email, role='Staff').first()
-        if staff:
-            return Order.objects.filter(staff=staff).order_by('-order_date')
+        if user.role == 'Owner':
+            return Order.objects.filter(staff__restaurant__owner=user).order_by('-order_date')
 
         return Order.objects.none()
 
