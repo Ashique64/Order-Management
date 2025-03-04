@@ -13,12 +13,13 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        user_id = self.kwargs.get('user_id')
 
         if user.role == 'Staff' and user.restaurant is not None:
-            return Order.objects.filter(staff=user).order_by('-order_date')
+            return Order.objects.filter(staff_id=user_id).order_by('-order_date')
 
         if user.role == 'Owner':
-            return Order.objects.filter(staff__restaurant__owner=user).order_by('-order_date')
+            return Order.objects.filter(staff__restaurant__owner_id=user_id).order_by('-order_date')
 
         return Order.objects.none()
 

@@ -177,11 +177,11 @@ class StaffUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     authentication_classes = [JWTAuthentication]
 
     def get_object(self):
-        staff_name = self.kwargs.get('name')
+        staff_id = self.kwargs.get('pk')
         user = self.request.user
 
         try:
-            staff = CustomUser.objects.get(name=staff_name, role='Staff')
+            staff = CustomUser.objects.get(id=staff_id, role='Staff')
         except CustomUser.DoesNotExist:
             raise NotFound("Staff member not found.")
 
